@@ -1,8 +1,12 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Net;
-using System.Security.Cryptography;
 using System.Text;
+#if WINRT
+using System.Threading.Tasks;
+#else
+using System.Security.Cryptography;
+#endif
 
 namespace SteamAuth
 {
@@ -45,9 +49,17 @@ namespace SteamAuth
 
         private static byte[] steamGuardCodeTranslations = new byte[] { 50, 51, 52, 53, 54, 55, 56, 57, 66, 67, 68, 70, 71, 72, 74, 75, 77, 78, 80, 81, 82, 84, 86, 87, 88, 89 };
 
+#if WINRT
+        public async Task<string> GenerateSteamGuardCodeAsync()
+#else
         public string GenerateSteamGuardCode()
+#endif
         {
+#if WINRT
+            return GenerateSteamGuardCodeForTime(await TimeAligner.GetSteamTimeAsync());
+#else
             return GenerateSteamGuardCodeForTime(TimeAligner.GetSteamTime());
+#endif
         }
 
         public string GenerateSteamGuardCodeForTime(long time)

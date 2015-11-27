@@ -83,9 +83,17 @@ namespace SteamAuth
 #endif
         }
 
+#if WINRT
+        public async Task<LinkResult> AddAuthenticatorAsync()
+#else
         public LinkResult AddAuthenticator()
+#endif
         {
+#if WINRT
+            bool hasPhone = await _hasPhoneAttachedAsync();
+#else
             bool hasPhone = _hasPhoneAttached();
+#endif
             if (hasPhone && PhoneNumber != null)
                 return LinkResult.MustRemovePhoneNumber;
             if (!hasPhone && PhoneNumber == null)
@@ -93,12 +101,26 @@ namespace SteamAuth
 
             if (!hasPhone)
             {
+#if WINRT
+                if (!await _addPhoneNumberAsync())
+#else
                 if (!_addPhoneNumber())
+#endif
                 {
                     return LinkResult.GeneralFailure;
                 }
             }
 
+#if WINRT
+            var postData = new List<KeyValuePair<string, string>>();
+            postData.Add(new KeyValuePair<string,string>("access_token", _session.OAuthToken));
+            postData.Add(new KeyValuePair<string,string>("steamid", _session.SteamID.ToString()));
+            postData.Add(new KeyValuePair<string,string>("authenticator_type", "1"));
+            postData.Add(new KeyValuePair<string,string>("device_identifier", this.DeviceID));
+            postData.Add(new KeyValuePair<string,string>("sms_phone_id", "1"));
+
+            string response = await SteamWeb.MobileLoginRequestAsync(APIEndpoints.STEAMAPI_BASE + "/ITwoFactorService/AddAuthenticator/v0001", "POST", postData);
+#else
             var postData = new NameValueCollection();
             postData.Add("access_token", _session.OAuthToken);
             postData.Add("steamid", _session.SteamID.ToString());
@@ -107,6 +129,7 @@ namespace SteamAuth
             postData.Add("sms_phone_id", "1");
 
             string response = SteamWeb.MobileLoginRequest(APIEndpoints.STEAMAPI_BASE + "/ITwoFactorService/AddAuthenticator/v0001", "POST", postData);
+#endif
             var addAuthenticatorResponse = JsonConvert.DeserializeObject<AddAuthenticatorResponse>(response);
             if (addAuthenticatorResponse == null || addAuthenticatorResponse.Response == null || addAuthenticatorResponse.Response.Status != 1)
             {
@@ -120,18 +143,44 @@ namespace SteamAuth
             return LinkResult.AwaitingFinalization;
         }
 
+#if WINRT
+        public async Task<FinalizeResult> FinalizeAddAuthenticatorAsync(string smsCode)
+#else
         public FinalizeResult FinalizeAddAuthenticator(string smsCode)
+#endif
         {
             bool smsCodeGood = false;
 
+#if WINRT
+            var postData = new List<KeyValuePair<string, string>>();
+            postData.Add(new KeyValuePair<string, string>("steamid", _session.SteamID.ToString()));
+            postData.Add(new KeyValuePair<string, string>("access_token", _session.OAuthToken));
+#else
             var postData = new NameValueCollection();
             postData.Add("steamid", _session.SteamID.ToString());
             postData.Add("access_token", _session.OAuthToken);
             postData.Add("activation_code", smsCode);
             postData.Add("authenticator_code", "");
+#endif
             int tries = 0;
             while (tries <= 30)
             {
+#if WINRT
+                var postData2 = new List<KeyValuePair<string, string>>(postData);
+                postData.Add(new KeyValuePair<string, string>("authenticator_code", tries == 0 ? "" : await LinkedAccount.GenerateSteamGuardCodeAsync()));
+                postData.Add(new KeyValuePair<string, string>("authenticator_time", TimeAligner.GetSteamTimeAsync().ToString()));
+
+                if (smsCodeGood)
+                {
+                    postData.Add(new KeyValuePair<string, string>("activation_code", ""));
+                }
+                else
+                {
+                    postData.Add(new KeyValuePair<string, string>("activation_code", smsCode));
+                }
+
+                string response = await SteamWeb.MobileLoginRequestAsync(APIEndpoints.STEAMAPI_BASE + "/ITwoFactorService/FinalizeAddAuthenticator/v0001", "POST", postData);
+#else
                 postData.Set("authenticator_code", tries == 0 ? "" : LinkedAccount.GenerateSteamGuardCode());
                 postData.Add("authenticator_time", TimeAligner.GetSteamTime().ToString());
 
@@ -139,6 +188,7 @@ namespace SteamAuth
                     postData.Set("activation_code", "");
 
                 string response = SteamWeb.MobileLoginRequest(APIEndpoints.STEAMAPI_BASE + "/ITwoFactorService/FinalizeAddAuthenticator/v0001", "POST", postData);
+#endif
                 var finalizeResponse = JsonConvert.DeserializeObject<FinalizeAuthenticatorResponse>(response);
 
                 if (finalizeResponse == null || finalizeResponse.Response == null)
@@ -177,19 +227,38 @@ namespace SteamAuth
             return FinalizeResult.GeneralFailure;
         }
 
+#if WINRT
+        private async Task<bool> _addPhoneNumberAsync()
+#else
         private bool _addPhoneNumber()
+#endif
         {
+#if WINRT
+            string response = await SteamWeb.RequestAsync(APIEndpoints.COMMUNITY_BASE + "/steamguard/phoneajax?op=add_phone_number&arg=" + WebUtility.UrlEncode(PhoneNumber), "GET", null, _cookies);
+#else
             string response = SteamWeb.Request(APIEndpoints.COMMUNITY_BASE + "/steamguard/phoneajax?op=add_phone_number&arg=" + WebUtility.UrlEncode(PhoneNumber), "GET", null, _cookies);
+#endif
             var addPhoneNumberResponse = JsonConvert.DeserializeObject<AddPhoneResponse>(response);
             return addPhoneNumberResponse.Success;
         }
 
+#if WINRT
+        private async Task<bool> _hasPhoneAttachedAsync()
+#else
         private bool _hasPhoneAttached()
+#endif
         {
+#if WINRT
+            var postData = new List<KeyValuePair<string, string>>();
+            postData.Add(new KeyValuePair<string, string>("op", "has_phone"));
+            postData.Add(new KeyValuePair<string, string>("arg", "null"));
+            string response = await SteamWeb.MobileLoginRequestAsync(APIEndpoints.COMMUNITY_BASE + "/steamguard/phoneajax", "GET", postData, _cookies);
+#else
             var postData = new NameValueCollection();
             postData.Add("op", "has_phone");
             postData.Add("arg", "null");
             string response = SteamWeb.MobileLoginRequest(APIEndpoints.COMMUNITY_BASE + "/steamguard/phoneajax", "GET", postData, _cookies);
+#endif
             var hasPhoneResponse = JsonConvert.DeserializeObject<HasPhoneResponse>(response);
             return hasPhoneResponse.HasPhone;
         }
