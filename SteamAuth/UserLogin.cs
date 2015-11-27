@@ -104,9 +104,10 @@ namespace SteamAuth
             byte[] encryptedPasswordBytes;
 
             Org.BouncyCastle.Crypto.Engines.RsaEngine rsaEncryptor = new Org.BouncyCastle.Crypto.Engines.RsaEngine();
-            rsaEncryptor.Init(true, new Org.BouncyCastle.Crypto.Parameters.RsaKeyParameters(false,
-                new Org.BouncyCastle.Math.BigInteger(Util.HexStringToByteArray(rsaResponse.Modulus)),
-                new Org.BouncyCastle.Math.BigInteger(Util.HexStringToByteArray(rsaResponse.Exponent))));
+            var rsaParameters = new Org.BouncyCastle.Crypto.Parameters.RsaKeyParameters(false,
+                new Org.BouncyCastle.Math.BigInteger(rsaResponse.Modulus, 16),
+                new Org.BouncyCastle.Math.BigInteger(rsaResponse.Exponent, 16));
+            rsaEncryptor.Init(true, rsaParameters);
 
             var passwordBytes = Encoding.UTF8.GetBytes(this.Password);
             encryptedPasswordBytes = rsaEncryptor.ProcessBlock(passwordBytes, 0, passwordBytes.Length);
