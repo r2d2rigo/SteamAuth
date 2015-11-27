@@ -102,15 +102,14 @@ namespace SteamAuth
 
 #if WINRT
             byte[] encryptedPasswordBytes;
-            using (var rsaEncryptor = new RSACryptoServiceProvider())
-            {
-                var passwordBytes = Encoding.UTF8.GetBytes(this.Password);
-                var rsaParameters = rsaEncryptor.ExportParameters(false);
-                rsaParameters.Exponent = Util.HexStringToByteArray(rsaResponse.Exponent);
-                rsaParameters.Modulus = Util.HexStringToByteArray(rsaResponse.Modulus);
-                rsaEncryptor.ImportParameters(rsaParameters);
-                encryptedPasswordBytes = rsaEncryptor.Encrypt(passwordBytes, false);
-            }
+
+            Org.BouncyCastle.Crypto.Engines.RsaEngine rsaEncryptor = new Org.BouncyCastle.Crypto.Engines.RsaEngine();
+            rsaEncryptor.Init(true, new Org.BouncyCastle.Crypto.Parameters.RsaKeyParameters(false,
+                new Org.BouncyCastle.Math.BigInteger(Util.HexStringToByteArray(rsaResponse.Modulus)),
+                new Org.BouncyCastle.Math.BigInteger(Util.HexStringToByteArray(rsaResponse.Exponent))));
+
+            var passwordBytes = Encoding.UTF8.GetBytes(this.Password);
+            encryptedPasswordBytes = rsaEncryptor.ProcessBlock(passwordBytes, 0, passwordBytes.Length);
 #else
             RNGCryptoServiceProvider secureRandom = new RNGCryptoServiceProvider();
             byte[] encryptedPasswordBytes;
