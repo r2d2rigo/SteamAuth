@@ -21,7 +21,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;WINRT</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -29,19 +29,49 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>TRACE;WINRT</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <ItemGroup>
-    <!-- A reference to the entire .NET Framework is automatically included -->
-  </ItemGroup>
   <ItemGroup>
     <TargetPlatform Include="Windows, Version=8.1" />
     <TargetPlatform Include="WindowsPhoneApp, Version=8.1" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\SteamAuth\APIEndpoints.cs">
+      <Link>APIEndpoints.cs</Link>
+    </Compile>
+    <Compile Include="..\SteamAuth\AuthenticatorLinker.cs">
+      <Link>AuthenticatorLinker.cs</Link>
+    </Compile>
+    <Compile Include="..\SteamAuth\SessionData.cs">
+      <Link>SessionData.cs</Link>
+    </Compile>
+    <Compile Include="..\SteamAuth\SteamGuardAccount.cs">
+      <Link>SteamGuardAccount.cs</Link>
+    </Compile>
+    <Compile Include="..\SteamAuth\SteamWeb.cs">
+      <Link>SteamWeb.cs</Link>
+    </Compile>
+    <Compile Include="..\SteamAuth\TimeAligner.cs">
+      <Link>TimeAligner.cs</Link>
+    </Compile>
+    <Compile Include="..\SteamAuth\UserLogin.cs">
+      <Link>UserLogin.cs</Link>
+    </Compile>
+    <Compile Include="..\SteamAuth\Util.cs">
+      <Link>Util.cs</Link>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=7.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\SteamAuth\packages\Newtonsoft.Json.7.0.1\lib\portable-net45+wp80+win8+wpa81+dnxcore50\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

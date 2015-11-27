@@ -46,6 +46,24 @@ namespace SteamAuth
             this.DeviceID = _generateDeviceID();
 
             this._cookies = new CookieContainer();
+#if WINRT
+            _cookies.Add(new Uri(APIEndpoints.COMMUNITY_BASE), new Cookie("mobileClientVersion", "0 (2.1.3)", "/", ".steamcommunity.com"));
+            _cookies.Add(new Uri(APIEndpoints.COMMUNITY_BASE), new Cookie("mobileClient", "android", "/", ".steamcommunity.com"));
+
+            _cookies.Add(new Uri(APIEndpoints.COMMUNITY_BASE), new Cookie("steamid", session.SteamID.ToString(), "/", ".steamcommunity.com"));
+            _cookies.Add(new Uri(APIEndpoints.COMMUNITY_BASE), new Cookie("steamLogin", session.SteamLogin, "/", ".steamcommunity.com")
+            {
+                HttpOnly = true
+            });
+
+            _cookies.Add(new Uri(APIEndpoints.COMMUNITY_BASE), new Cookie("steamLoginSecure", session.SteamLoginSecure, "/", ".steamcommunity.com")
+            {
+                HttpOnly = true,
+                Secure = true
+            });
+            _cookies.Add(new Uri(APIEndpoints.COMMUNITY_BASE), new Cookie("Steam_Language", "english", "/", ".steamcommunity.com"));
+            _cookies.Add(new Uri(APIEndpoints.COMMUNITY_BASE), new Cookie("dob", "", "/", ".steamcommunity.com"));
+#else
             _cookies.Add(new Cookie("mobileClientVersion", "0 (2.1.3)", "/", ".steamcommunity.com"));
             _cookies.Add(new Cookie("mobileClient", "android", "/", ".steamcommunity.com"));
 
@@ -62,6 +80,7 @@ namespace SteamAuth
             });
             _cookies.Add(new Cookie("Steam_Language", "english", "/", ".steamcommunity.com"));
             _cookies.Add(new Cookie("dob", "", "/", ".steamcommunity.com"));
+#endif
         }
 
         public LinkResult AddAuthenticator()

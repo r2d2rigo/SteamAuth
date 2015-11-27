@@ -47,9 +47,15 @@ namespace SteamAuth
             if (cookies.Count == 0)
             {
                 //Generate a SessionID
+#if WINRT
+                cookies.Add(new Uri(APIEndpoints.COMMUNITY_BASE), new Cookie("mobileClientVersion", "0 (2.1.3)", "/", ".steamcommunity.com"));
+                cookies.Add(new Uri(APIEndpoints.COMMUNITY_BASE), new Cookie("mobileClient", "android", "/", ".steamcommunity.com"));
+                cookies.Add(new Uri(APIEndpoints.COMMUNITY_BASE), new Cookie("Steam_Language", "english", "/", ".steamcommunity.com"));
+#else
                 cookies.Add(new Cookie("mobileClientVersion", "0 (2.1.3)", "/", ".steamcommunity.com"));
                 cookies.Add(new Cookie("mobileClient", "android", "/", ".steamcommunity.com"));
                 cookies.Add(new Cookie("Steam_Language", "english", "/", ".steamcommunity.com"));
+#endif
 
                 NameValueCollection headers = new NameValueCollection();
                 headers.Add("X-Requested-With", "com.valvesoftware.android.steam.community");
