@@ -1,5 +1,11 @@
 ﻿using System.Net;
 using Newtonsoft.Json;
+#if WINRT
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Windows.Web.Http;
+#endif
 
 namespace SteamAuth
 {
@@ -12,6 +18,41 @@ namespace SteamAuth
         private static bool _aligned = false;
         private static int _timeDifference = 0;
 
+#if WINRT
+        public static async Task<long> GetSteamTimeAsync()
+        {
+            if (!TimeAligner._aligned)
+            {
+                await TimeAligner.AlignTimeAsync();
+            }
+            return Util.GetSystemUnixTime() + _timeDifference;
+        }
+
+        public static async Task AlignTimeAsync()
+        {
+            long currentTime = Util.GetSystemUnixTime();
+            using (HttpClient client = new HttpClient())
+            {
+                try
+                {
+                    var result = await client.PostAsync(new System.Uri(APIEndpoints.TWO_FACTOR_TIME_QUERY), new HttpFormUrlEncodedContent(new List<KeyValuePair<string, string>>()
+                    {
+                        new KeyValuePair<string, string>("steamid", "0"),
+                    }));
+
+                    var response = await result.Content.ReadAsStringAsync();
+
+                    TimeQuery query = JsonConvert.DeserializeObject<TimeQuery>(response);
+                    TimeAligner._timeDifference = (int)(query.Response.ServerTime - currentTime);
+                    TimeAligner._aligned = true;
+                }
+                catch (Exception e)
+                {
+                    return;
+                }
+            }
+        }
+#else
         public static long GetSteamTime()
         {
             if (!TimeAligner._aligned)
@@ -39,6 +80,7 @@ namespace SteamAuth
                 }
             }
         }
+#endif
 
         internal class TimeQuery
         {
@@ -50,7 +92,7 @@ namespace SteamAuth
                 [JsonProperty("server_time")]
                 public long ServerTime { get; set; }
             }
-            
+
         }
     }
 }
