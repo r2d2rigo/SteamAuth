@@ -4,6 +4,8 @@ using System.Net;
 using System.Text;
 #if WINRT
 using System.Threading.Tasks;
+using Windows.Security.Cryptography.Core;
+using System.Runtime.InteropServices.WindowsRuntime;
 #else
 using System.Security.Cryptography;
 #endif
@@ -80,9 +82,19 @@ namespace SteamAuth
                 time >>= 8;
             }
 
+#if WINRT
+            MacAlgorithmProvider provider = MacAlgorithmProvider.OpenAlgorithm(MacAlgorithmNames.HmacSha1);
+            var keyBuffer = sharedSecretArray.AsBuffer();
+            provider.CreateKey(keyBuffer);
+            var timeBuffer = timeArray.AsBuffer();
+            var hash = provider.CreateHash(timeBuffer);
+            var hashBuffer = hash.GetValueAndReset();
+            byte[] hashedData = hashBuffer.ToArray();
+#else
             HMACSHA1 hmacGenerator = new HMACSHA1();
             hmacGenerator.Key = sharedSecretArray;
             byte[] hashedData = hmacGenerator.ComputeHash(timeArray);
+#endif
             byte[] codeArray = new byte[5];
             try
             {
@@ -99,7 +111,12 @@ namespace SteamAuth
             {
                 return null; //Change later, catch-alls are bad!
             }
+
+#if WINRT
+            return Encoding.UTF8.GetString(codeArray, 0, codeArray.Length);
+#else
             return Encoding.UTF8.GetString(codeArray);
+#endif
         }
 
         private string _generateConfirmationHashForTime(long time, string tag) {
@@ -136,10 +153,21 @@ namespace SteamAuth
 
             try
             {
+#if WINRT
+                MacAlgorithmProvider provider = MacAlgorithmProvider.OpenAlgorithm(MacAlgorithmNames.HmacSha1);
+                var keyBuffer = decode.AsBuffer();
+                provider.CreateKey(keyBuffer);
+                var timeBuffer = array.AsBuffer();
+                var timeHash = provider.CreateHash(timeBuffer);
+                var hashBuffer = timeHash.GetValueAndReset();
+                byte[] hashedData = hashBuffer.ToArray();
+                string encodedData = Convert.ToBase64String(hashedData);
+#else
                 HMACSHA1 hmacGenerator = new HMACSHA1();
                 hmacGenerator.Key = decode;
                 byte[] hashedData = hmacGenerator.ComputeHash(array);
                 string encodedData = Convert.ToBase64String(hashedData, Base64FormattingOptions.None);
+#endif
                 string hash = WebUtility.UrlEncode(encodedData);
                 return hash;
             }

@@ -4,9 +4,15 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Net;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+#if WINRT
+using Windows.Security.Cryptography;
+using Windows.Security.Cryptography.Core;
+using System.Runtime.InteropServices.WindowsRuntime;
+#else
+using System.Security.Cryptography;
+#endif
 
 namespace SteamAuth
 {
@@ -15,7 +21,7 @@ namespace SteamAuth
     /// </summary>
     public class AuthenticatorLinker
     {
-       
+
 
         /// <summary>
         /// Set to register a new phone number when linking. If a phone number is not set on the account, this must be set. If a phone number is set on the account, this must be null.
@@ -113,11 +119,11 @@ namespace SteamAuth
 
 #if WINRT
             var postData = new List<KeyValuePair<string, string>>();
-            postData.Add(new KeyValuePair<string,string>("access_token", _session.OAuthToken));
-            postData.Add(new KeyValuePair<string,string>("steamid", _session.SteamID.ToString()));
-            postData.Add(new KeyValuePair<string,string>("authenticator_type", "1"));
-            postData.Add(new KeyValuePair<string,string>("device_identifier", this.DeviceID));
-            postData.Add(new KeyValuePair<string,string>("sms_phone_id", "1"));
+            postData.Add(new KeyValuePair<string, string>("access_token", _session.OAuthToken));
+            postData.Add(new KeyValuePair<string, string>("steamid", _session.SteamID.ToString()));
+            postData.Add(new KeyValuePair<string, string>("authenticator_type", "1"));
+            postData.Add(new KeyValuePair<string, string>("device_identifier", this.DeviceID));
+            postData.Add(new KeyValuePair<string, string>("sms_phone_id", "1"));
 
             string response = await SteamWeb.MobileLoginRequestAsync(APIEndpoints.STEAMAPI_BASE + "/ITwoFactorService/AddAuthenticator/v0001", "POST", postData);
 #else
@@ -196,14 +202,14 @@ namespace SteamAuth
                     return FinalizeResult.GeneralFailure;
                 }
 
-                if(finalizeResponse.Response.Status == 89)
+                if (finalizeResponse.Response.Status == 89)
                 {
                     return FinalizeResult.BadSMSCode;
                 }
 
-                if(finalizeResponse.Response.Status == 88)
+                if (finalizeResponse.Response.Status == 88)
                 {
-                    if(tries >= 30)
+                    if (tries >= 30)
                     {
                         return FinalizeResult.UnableToGenerateCorrectCodes;
                     }
@@ -214,7 +220,7 @@ namespace SteamAuth
                     return FinalizeResult.GeneralFailure;
                 }
 
-                if (finalizeResponse.Response.WantMore) 
+                if (finalizeResponse.Response.WantMore)
                 {
                     smsCodeGood = true;
                     tries++;
@@ -320,6 +326,14 @@ namespace SteamAuth
 
         private string _generateDeviceID()
         {
+#if WINRT
+            var sha1 = HashAlgorithmProvider.OpenAlgorithm(HashAlgorithmNames.Sha1);
+            var randomBuffer= CryptographicBuffer.GenerateRandom(8);
+            var hashedBuffer = sha1.HashData(randomBuffer);
+
+            byte[] hashedBytes = hashedBuffer.ToArray();
+            return "android:" + BitConverter.ToString(hashedBytes).Replace("-", "");
+#else
             using (var sha1 = new SHA1Managed())
             {
                 RNGCryptoServiceProvider secureRandom = new RNGCryptoServiceProvider();
@@ -329,6 +343,7 @@ namespace SteamAuth
                 byte[] hashedBytes = sha1.ComputeHash(randomBytes);
                 return "android:" + BitConverter.ToString(hashedBytes).Replace("-", "");
             }
+#endif
         }
     }
 }

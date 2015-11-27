@@ -6,6 +6,8 @@ using System.Text;
 #if WINRT
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Windows.Security.Cryptography;
+using Windows.Security.Cryptography.Core;
 #else
 using System.Security.Cryptography;
 #endif
@@ -98,6 +100,18 @@ namespace SteamAuth
                 return LoginResult.BadRSA;
             }
 
+#if WINRT
+            byte[] encryptedPasswordBytes;
+            using (var rsaEncryptor = new RSACryptoServiceProvider())
+            {
+                var passwordBytes = Encoding.UTF8.GetBytes(this.Password);
+                var rsaParameters = rsaEncryptor.ExportParameters(false);
+                rsaParameters.Exponent = Util.HexStringToByteArray(rsaResponse.Exponent);
+                rsaParameters.Modulus = Util.HexStringToByteArray(rsaResponse.Modulus);
+                rsaEncryptor.ImportParameters(rsaParameters);
+                encryptedPasswordBytes = rsaEncryptor.Encrypt(passwordBytes, false);
+            }
+#else
             RNGCryptoServiceProvider secureRandom = new RNGCryptoServiceProvider();
             byte[] encryptedPasswordBytes;
             using (var rsaEncryptor = new RSACryptoServiceProvider())
@@ -109,6 +123,7 @@ namespace SteamAuth
                 rsaEncryptor.ImportParameters(rsaParameters);
                 encryptedPasswordBytes = rsaEncryptor.Encrypt(passwordBytes, false);
             }
+#endif
 
             string encryptedPassword = Convert.ToBase64String(encryptedPasswordBytes);
 
@@ -243,7 +258,7 @@ namespace SteamAuth
 
                 [JsonProperty("oauth_token")]
                 public string OAuthToken { get; set; }
-                
+
                 [JsonProperty("wgtoken")]
                 public string SteamLogin { get; set; }
 
