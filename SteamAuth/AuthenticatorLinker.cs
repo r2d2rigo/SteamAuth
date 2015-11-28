@@ -52,41 +52,7 @@ namespace SteamAuth
             this.DeviceID = _generateDeviceID();
 
             this._cookies = new CookieContainer();
-#if WINRT
-            _cookies.Add(new Uri(APIEndpoints.COMMUNITY_BASE), new Cookie("mobileClientVersion", "0 (2.1.3)", "/", ".steamcommunity.com"));
-            _cookies.Add(new Uri(APIEndpoints.COMMUNITY_BASE), new Cookie("mobileClient", "android", "/", ".steamcommunity.com"));
-
-            _cookies.Add(new Uri(APIEndpoints.COMMUNITY_BASE), new Cookie("steamid", session.SteamID.ToString(), "/", ".steamcommunity.com"));
-            _cookies.Add(new Uri(APIEndpoints.COMMUNITY_BASE), new Cookie("steamLogin", session.SteamLogin, "/", ".steamcommunity.com")
-            {
-                HttpOnly = true
-            });
-
-            _cookies.Add(new Uri(APIEndpoints.COMMUNITY_BASE), new Cookie("steamLoginSecure", session.SteamLoginSecure, "/", ".steamcommunity.com")
-            {
-                HttpOnly = true,
-                Secure = true
-            });
-            _cookies.Add(new Uri(APIEndpoints.COMMUNITY_BASE), new Cookie("Steam_Language", "english", "/", ".steamcommunity.com"));
-            _cookies.Add(new Uri(APIEndpoints.COMMUNITY_BASE), new Cookie("dob", "", "/", ".steamcommunity.com"));
-#else
-            _cookies.Add(new Cookie("mobileClientVersion", "0 (2.1.3)", "/", ".steamcommunity.com"));
-            _cookies.Add(new Cookie("mobileClient", "android", "/", ".steamcommunity.com"));
-
-            _cookies.Add(new Cookie("steamid", session.SteamID.ToString(), "/", ".steamcommunity.com"));
-            _cookies.Add(new Cookie("steamLogin", session.SteamLogin, "/", ".steamcommunity.com")
-            {
-                HttpOnly = true
-            });
-
-            _cookies.Add(new Cookie("steamLoginSecure", session.SteamLoginSecure, "/", ".steamcommunity.com")
-            {
-                HttpOnly = true,
-                Secure = true
-            });
-            _cookies.Add(new Cookie("Steam_Language", "english", "/", ".steamcommunity.com"));
-            _cookies.Add(new Cookie("dob", "", "/", ".steamcommunity.com"));
-#endif
+            session.AddCookies(_cookies);
         }
 
 #if WINRT
@@ -136,6 +102,8 @@ namespace SteamAuth
 
             string response = SteamWeb.MobileLoginRequest(APIEndpoints.STEAMAPI_BASE + "/ITwoFactorService/AddAuthenticator/v0001", "POST", postData);
 #endif
+            if (response == null) return LinkResult.GeneralFailure;
+
             var addAuthenticatorResponse = JsonConvert.DeserializeObject<AddAuthenticatorResponse>(response);
             if (addAuthenticatorResponse == null || addAuthenticatorResponse.Response == null || addAuthenticatorResponse.Response.Status != 1)
             {
@@ -195,6 +163,8 @@ namespace SteamAuth
 
                 string response = SteamWeb.MobileLoginRequest(APIEndpoints.STEAMAPI_BASE + "/ITwoFactorService/FinalizeAddAuthenticator/v0001", "POST", postData);
 #endif
+                if (response == null) return FinalizeResult.GeneralFailure;
+
                 var finalizeResponse = JsonConvert.DeserializeObject<FinalizeAuthenticatorResponse>(response);
 
                 if (finalizeResponse == null || finalizeResponse.Response == null)
@@ -202,14 +172,14 @@ namespace SteamAuth
                     return FinalizeResult.GeneralFailure;
                 }
 
-                if (finalizeResponse.Response.Status == 89)
+                if(finalizeResponse.Response.Status == 89)
                 {
                     return FinalizeResult.BadSMSCode;
                 }
 
-                if (finalizeResponse.Response.Status == 88)
+                if(finalizeResponse.Response.Status == 88)
                 {
-                    if (tries >= 30)
+                    if(tries >= 30)
                     {
                         return FinalizeResult.UnableToGenerateCorrectCodes;
                     }
@@ -227,6 +197,7 @@ namespace SteamAuth
                     continue;
                 }
 
+                this.LinkedAccount.FullyEnrolled = true;
                 return FinalizeResult.Success;
             }
 
@@ -244,6 +215,8 @@ namespace SteamAuth
 #else
             string response = SteamWeb.Request(APIEndpoints.COMMUNITY_BASE + "/steamguard/phoneajax?op=add_phone_number&arg=" + WebUtility.UrlEncode(PhoneNumber), "GET", null, _cookies);
 #endif
+            if (response == null) return false;
+
             var addPhoneNumberResponse = JsonConvert.DeserializeObject<AddPhoneResponse>(response);
             return addPhoneNumberResponse.Success;
         }
@@ -265,6 +238,8 @@ namespace SteamAuth
             postData.Add("arg", "null");
             string response = SteamWeb.MobileLoginRequest(APIEndpoints.COMMUNITY_BASE + "/steamguard/phoneajax", "GET", postData, _cookies);
 #endif
+            if (response == null) return false;
+
             var hasPhoneResponse = JsonConvert.DeserializeObject<HasPhoneResponse>(response);
             return hasPhoneResponse.HasPhone;
         }

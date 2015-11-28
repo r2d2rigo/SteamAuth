@@ -44,6 +44,9 @@
     <Compile Include="..\SteamAuth\AuthenticatorLinker.cs">
       <Link>AuthenticatorLinker.cs</Link>
     </Compile>
+    <Compile Include="..\SteamAuth\Confirmation.cs">
+      <Link>Confirmation.cs</Link>
+    </Compile>
     <Compile Include="..\SteamAuth\SessionData.cs">
       <Link>SessionData.cs</Link>
     </Compile>
