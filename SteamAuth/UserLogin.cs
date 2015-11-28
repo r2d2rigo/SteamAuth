@@ -8,6 +8,10 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Windows.Security.Cryptography;
 using Windows.Security.Cryptography.Core;
+using Org.BouncyCastle.Crypto.Engines;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Math;
+using Org.BouncyCastle.Crypto.Encodings;
 #else
 using System.Security.Cryptography;
 #endif
@@ -104,14 +108,16 @@ namespace SteamAuth
 #if WINRT
             byte[] encryptedPasswordBytes;
 
-            Org.BouncyCastle.Crypto.Engines.RsaEngine rsaEncryptor = new Org.BouncyCastle.Crypto.Engines.RsaEngine();
-            var rsaParameters = new Org.BouncyCastle.Crypto.Parameters.RsaKeyParameters(false,
-                new Org.BouncyCastle.Math.BigInteger(rsaResponse.Modulus, 16),
-                new Org.BouncyCastle.Math.BigInteger(rsaResponse.Exponent, 16));
-            rsaEncryptor.Init(true, rsaParameters);
+            RsaEngine rsaEncryptor = new RsaEngine();
+            var rsaParameters = new RsaKeyParameters(false,
+                new BigInteger(rsaResponse.Modulus, 16),
+                new BigInteger(rsaResponse.Exponent, 16));
+
+            Pkcs1Encoding pcksEncoding = new Pkcs1Encoding(rsaEncryptor);
+            pcksEncoding.Init(true, rsaParameters);
 
             var passwordBytes = Encoding.UTF8.GetBytes(this.Password);
-            encryptedPasswordBytes = rsaEncryptor.ProcessBlock(passwordBytes, 0, passwordBytes.Length);
+            encryptedPasswordBytes = pcksEncoding.ProcessBlock(passwordBytes, 0, passwordBytes.Length);
 #else
             RNGCryptoServiceProvider secureRandom = new RNGCryptoServiceProvider();
             byte[] encryptedPasswordBytes;
