@@ -154,12 +154,7 @@ namespace SteamAuth
                 string confID = confIDs[i].Groups[1].Value;
                 string confKey = confKeys[i].Groups[1].Value;
                 string confDesc = confDescs[i].Groups[1].Value;
-                Confirmation conf = new Confirmation()
-                {
-                    ConfirmationDescription = confDesc,
-                    ConfirmationID = confID,
-                    ConfirmationKey = confKey
-                };
+                Confirmation conf = new Confirmation(confID, confKey, confDesc);
                 ret.Add(conf);
             }
 
