@@ -92,6 +92,7 @@ namespace SteamAuth
 
             response = SteamWeb.MobileLoginRequest(APIEndpoints.COMMUNITY_BASE + "/login/getrsakey", "POST", postData, cookies);
 #endif
+            if (response == null) return LoginResult.GeneralFailure;
 
             var rsaResponse = JsonConvert.DeserializeObject<RSAResponse>(response);
 
@@ -133,12 +134,12 @@ namespace SteamAuth
             postData.Add(new KeyValuePair<string, string>("username", this.Username));
             postData.Add(new KeyValuePair<string, string>("password", encryptedPassword));
 
-            postData.Add(new KeyValuePair<string, string>("twofactorcode", this.Requires2FA ? this.TwoFactorCode : ""));
+            postData.Add(new KeyValuePair<string, string>("twofactorcode", this.TwoFactorCode ?? ""));
 
             postData.Add(new KeyValuePair<string, string>("captchagid", this.RequiresCaptcha ? this.CaptchaGID : "-1"));
             postData.Add(new KeyValuePair<string, string>("captcha_text", this.RequiresCaptcha ? this.CaptchaText : ""));
 
-            postData.Add(new KeyValuePair<string, string>("emailsteamid", this.RequiresEmail ? this.SteamID.ToString() : ""));
+            postData.Add(new KeyValuePair<string, string>("emailsteamid", (this.Requires2FA || this.RequiresEmail) ? this.SteamID.ToString() : ""));
             postData.Add(new KeyValuePair<string, string>("emailauth", this.RequiresEmail ? this.EmailCode : ""));
 
             postData.Add(new KeyValuePair<string, string>("rsatimestamp", rsaResponse.Timestamp));
@@ -146,18 +147,19 @@ namespace SteamAuth
             postData.Add(new KeyValuePair<string, string>("oauth_client_id", "DE45CD61"));
             postData.Add(new KeyValuePair<string, string>("oauth_scope", "read_profile write_profile read_client write_client"));
             postData.Add(new KeyValuePair<string, string>("loginfriendlyname", "#login_emailauth_friendlyname_mobile"));
+            postData.Add(new KeyValuePair<string, string>("donotcache", Util.GetSystemUnixTime().ToString()));
 
             response = await SteamWeb.MobileLoginRequestAsync(APIEndpoints.COMMUNITY_BASE + "/login/dologin", "POST", postData, cookies);
 #else
             postData.Add("username", this.Username);
             postData.Add("password", encryptedPassword);
 
-            postData.Add("twofactorcode", this.Requires2FA ? this.TwoFactorCode : "");
+            postData.Add("twofactorcode", this.TwoFactorCode ?? "");
 
             postData.Add("captchagid", this.RequiresCaptcha ? this.CaptchaGID : "-1");
             postData.Add("captcha_text", this.RequiresCaptcha ? this.CaptchaText : "");
 
-            postData.Add("emailsteamid", this.RequiresEmail ? this.SteamID.ToString() : "");
+            postData.Add("emailsteamid", (this.Requires2FA || this.RequiresEmail) ? this.SteamID.ToString() : "");
             postData.Add("emailauth", this.RequiresEmail ? this.EmailCode : "");
 
             postData.Add("rsatimestamp", rsaResponse.Timestamp);
@@ -165,9 +167,11 @@ namespace SteamAuth
             postData.Add("oauth_client_id", "DE45CD61");
             postData.Add("oauth_scope", "read_profile write_profile read_client write_client");
             postData.Add("loginfriendlyname", "#login_emailauth_friendlyname_mobile");
+            postData.Add("donotcache", Util.GetSystemUnixTime().ToString());
 
             response = SteamWeb.MobileLoginRequest(APIEndpoints.COMMUNITY_BASE + "/login/dologin", "POST", postData, cookies);
 #endif
+            if (response == null) return LoginResult.GeneralFailure;
 
             var loginResponse = JsonConvert.DeserializeObject<LoginResponse>(response);
 
@@ -185,7 +189,7 @@ namespace SteamAuth
                 return LoginResult.NeedEmail;
             }
 
-            if (loginResponse.TwoFactorNeeded)
+            if (loginResponse.TwoFactorNeeded && !loginResponse.Success)
             {
                 this.Requires2FA = true;
                 return LoginResult.Need2FA;
@@ -222,6 +226,9 @@ namespace SteamAuth
 
         private class LoginResponse
         {
+            [JsonProperty("success")]
+            public bool Success { get; set; }
+
             [JsonProperty("login_complete")]
             public bool LoginComplete { get; set; }
 
