@@ -121,7 +121,7 @@ namespace SteamAuth
             return Encoding.UTF8.GetString(codeArray);
         }
 
-        public Confirmation[] FetchConfirmations()
+        public List<Confirmation> FetchConfirmations()
         {
             string url = this._generateConfirmationURL();
 
@@ -141,7 +141,7 @@ namespace SteamAuth
 
             if (!(confIDRegex.IsMatch(response) && confKeyRegex.IsMatch(response) && confDescRegex.IsMatch(response)))
             {
-                return new Confirmation[0];
+                return new List<Confirmation>();
             }
 
             MatchCollection confIDs = confIDRegex.Matches(response);
@@ -158,7 +158,7 @@ namespace SteamAuth
                 ret.Add(conf);
             }
 
-            return ret.ToArray();
+            return ret;
         }
 
         public bool AcceptConfirmation(Confirmation conf)
